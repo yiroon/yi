@@ -2,10 +2,14 @@
 Object.prototype.toArray = function(){
     var arr = []
     for(var index in this){
-        arr[index] = this[index];
+        if(/[0-9]+/.test(index)){
+            arr.push(this[index]);
+        }
     }
     return arr;
 }
+
+
 
 //设置对象 __proto__
 Object.prototype.setProto = function(props){
@@ -51,8 +55,9 @@ var toMatrix = function(args) {
 
 var props = {
     each:function(fn){
-        if(!this[0]){
+        if(this.nodeType){
             fn.call(this,this,0)
+            return this;
         }
         this.toArray().forEach(function(item,index){
             fn.call(item,item,index)

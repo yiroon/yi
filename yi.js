@@ -926,9 +926,13 @@ function yiuiAll(selector){
 
     var tmpProps = props.clone();
 
-    if(selector.$){
-        delete tmpProps.$;
-        delete tmpProps.$$;
+    if(selector.console){
+        tmpProps = {
+            on:props.on,
+            un:props.un,
+            trigger:props.trigger,
+            each:props.each
+        }
     }
 
     els.setProto(tmpProps);

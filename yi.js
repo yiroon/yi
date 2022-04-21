@@ -1,46 +1,17 @@
-// 对象强制转数组
-Object.prototype.toArray = function(){
-    var arr = []
-    for(var index in this){
-        if(/[0-9]+/.test(index)){
-            arr.push(this[index]);
-        }
-    }
-    return arr;
-}
-
-
-
 //设置对象 __proto__
-Object.prototype.setProto = function(props){
-    var _this = this;
+function setProto(obj,props){
+    var _this = obj;
     function getProps(){
         var proto = {};
         for(var attr in props){
-            if(_this.__proto__){
-                _this.__proto__[attr] = props[attr];
-                continue;
-            }
             proto[attr] = {
                 value:props[attr]
             };
         }
         return proto;
     }
-    if(!this.__proto__){
-        Object.defineProperties(this,getProps());
-    }else{
-        getProps();
-    }
-}
 
-//克隆对象
-Object.prototype.clone = function(){
-    var tmp = {};
-    for(var index in this){
-        tmp[index] = this[index];
-    }
-    return tmp;
+    Object.defineProperties(_this,getProps());
 }
 
 /* transform的matrix互转 */
@@ -53,13 +24,35 @@ var toMatrix = function(args) {
     return matrixStr + '(' + list.join(',') + ')';
 };
 
+/* 数组对象转网址参数 */
+function arrToUrlParam(param, idx, key, encode) {
+    if (param == null) return '';
+    var paramStr = '';
+    var t = typeof(param);
+    if (t == 'string' || t == 'number' || t == 'boolean') {
+        var one_is = idx < 3 ? '?' : '&';
+        paramStr += one_is + key + '=' + (encode == null || encode ? encodeURIComponent(param) : param);
+    } else {
+        for (var i in param) {
+            if (!param.hasOwnProperty(i)) {
+                continue;
+            }
+            var k = key == null ? i : key + (param instanceof Array ? '[' + i + ']' : '.' + i);
+            idx++;
+            paramStr += arrToUrlParam(param[i], idx, k, encode);
+        }
+    }
+    return paramStr;
+}
+
 var props = {
     each:function(fn){
-        if(this.nodeType){
+        if(this.nodeType || this.location){
             fn.call(this,this,0)
             return this;
         }
-        this.toArray().forEach(function(item,index){
+
+        yiui.arrayFrom(this).forEach(function(item,index){
             fn.call(item,item,index)
         })
         return this;
@@ -75,13 +68,13 @@ var props = {
         var index = 0;
         this.each(function(){
             var tmpList = this.querySelectorAll(selector);
-            tmpList.toArray().forEach(function(item){
+            yiui.arrayFrom(tmpList).forEach(function(item){
                 list[index] = yiui(item);
                 index++;
             })
         })
-
-        list.setProto(props);
+        list.length = yiui.arrayFrom(list).length;
+        setProto(list,props);
         return list;
     },
     test:function(){
@@ -193,7 +186,9 @@ var props = {
                 });
             } else {
                 var parent = item.parentNode;
-                parent.removeChild(item);
+                if(parent){
+                    parent.removeChild(item);
+                }
             }
         });
         return this;
@@ -442,7 +437,7 @@ var props = {
     });
     dom.stopDrag = true;//停止拖动
     */
-    setDrag: function setDrag(opts) {
+    setDrag: function(opts) {
         opts = opts || {};
 
         function set(item) {
@@ -643,7 +638,7 @@ var props = {
                 }
             };
 
-            item.destroyDrag = function () {
+            item._destroyDrag = function () {
                 startX = startY = moveX = moveY = oldX = oldY = newX = newY = null;
                 item.removeEventListener('mousedown', methods.begin);
                 document.removeEventListener('mousemove', methods.move);
@@ -662,21 +657,21 @@ var props = {
                 }
             };
 
-            item.setDragStartY = function (setStartY) {
+            item._setDragStartY = function (setStartY) {
                 startY = setStartY;
                 isdrag = true;
             };
 
-            item.setDragStartX = function (setStartX) {
+            item._setDragStartX = function (setStartX) {
                 startX = setStartX;
                 isdrag = true;
             };
 
-            item.setOldX = function (v) {
+            item._setOldX = function (v) {
                 oldX = v;
             };
 
-            item.setOldY = function (v) {
+            item._setOldY = function (v) {
                 oldY = v;
             };
 
@@ -704,33 +699,35 @@ var props = {
         });
         return this;
     },
-    destroyDrag: function destroyDrag() {
-        this.each(function (item) {
-            item.destroyDrag();
+    destroyDrag: function() {
+        // console.log(yiui.arrayFrom(this))
+        this._destroyDrag ? this._destroyDrag() : this.each(function (item) {
+            item._destroyDrag();
+            // console.log(_this._destroyDrag)
         });
         return this;
     },
-    setDragStartY: function setDragStartY() {
-        this.each(function (item) {
-            item.setDragStartY();
+    setDragStartY: function() {
+        this._setDragStartY ? this._setDragStartY() : this.each(function (item) {
+            item._setDragStartY();
         });
         return this;
     },
-    setOldX: function setOldX() {
-        this.each(function (item) {
+    setOldX: function() {
+        this._setOldX ? this._setOldX() : this.each(function (item) {
             item.setOldX();
         });
         return this;
     },
-    setOldY: function setOldY() {
-        this.each(function (item) {
+    setOldY: function() {
+        this._setOldY ? this._setOldY() : this.each(function (item) {
             item.setOldY();
         });
         return this;
     },
 
     /* 长按事件 */
-    longpress: function longpress(fn) {
+    longpress: function(fn) {
         this.each(function (item) {
             var timer = null;
 
@@ -759,7 +756,7 @@ var props = {
     },
 
     /* 滚轮事件 */
-    wheel: function wheel(fn) {
+    wheel: function(fn) {
         this.each(function (item) {
             function _fn(ev) {
                 var e = ev || event;
@@ -785,7 +782,7 @@ var props = {
     },
 
     /* 元素出现事件 */
-    appear: function appear(fn) {
+    appear: function(fn) {
         var set = function set(item) {
             var scroller = [];
             /*遍历有滚动条的父节点*/
@@ -868,7 +865,7 @@ var props = {
     },
 
     /* 元素消失事件 */
-    disappear: function disappear(fn) {
+    disappear: function(fn) {
         this.each(function (item) {
             item.appear();
 
@@ -929,23 +926,30 @@ function yiuiAll(selector){
     var els = compile();
     if(!els){return;}
 
-    var tmpProps = props.clone();
+    
 
     if(selector.console){
-        tmpProps = {
+        setProto(els,{
             on:props.on,
             un:props.un,
             trigger:props.trigger,
             each:props.each
-        }
+        });
+        return els;
     }
 
-    els.setProto(tmpProps);
+    setProto(els,props);
 
+    
 
     if(els.length){
-        els.toArray().forEach(function(item){
-            item.setProto(tmpProps);
+        yiui.arrayFrom(els).forEach(function(item){
+            if(item.nodeName){
+                setProto(item,props);
+            }
+            if(els.fuck){
+                console.log(els,'-xxxxxxxxx')
+            }
         })
     }
     return els;
@@ -961,9 +965,18 @@ function yiui(selector){
 }
 
 
-
-yiui.setProto({
+setProto(yiui,{
     version:'2.0.0',
+    // 对象强制转数组
+    arrayFrom:function(obj){
+        var arr = []
+        for(var index in obj){
+            if(/[0-9]+/.test(index) && obj.hasOwnProperty(index) ){
+                arr.push(obj[index]);
+            }
+        }
+        return arr;
+    },
     /*
     $.get(url,function(){}}) 
     或
@@ -1102,7 +1115,7 @@ yiui.setProto({
         opts = opts || {};
         opts.data = opts.data || '';
 
-        if (_typeof(opts.data) == 'object') {
+        if (typeof(opts.data) == 'object') {
             var arr = new Array();
 
             for (var key in opts.data) {
@@ -1180,7 +1193,7 @@ yiui.setProto({
             } : args[0];
             var scriptsList = window.loadedScripts;
 
-            if (_typeof(scriptsList) == 'object' && scriptsList.indexOf(opts.src) > -1) {
+            if (typeof(scriptsList) == 'object' && scriptsList.indexOf(opts.src) > -1) {
                 return;
             }
 
@@ -1188,7 +1201,7 @@ yiui.setProto({
             script.type = opts.type || 'text/javascript';
             script.src = opts.src;
             document.querySelector('head').appendChild(script);
-            scriptsList = _typeof(scriptsList) == 'object' ? scriptsList : [];
+            scriptsList = typeof(scriptsList) == 'object' ? scriptsList : [];
             scriptsList.push(opts.src);
             window.loadedScripts = scriptsList;
 
@@ -1199,7 +1212,7 @@ yiui.setProto({
             }
         }
 
-        if (_typeof(arguments[0]) == 'object') {
+        if (typeof(arguments[0]) == 'object') {
             if (Array.isArray(arguments[0])) {
                 [].forEach.call(arguments[0], function (item) {
                     _load_script_(item);

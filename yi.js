@@ -52,10 +52,19 @@ var props = {
             return this;
         }
 
-        yiui.arrayFrom(this).forEach(function(item,index){
+        this.toArray().forEach(function(item,index){
             fn.call(item,item,index)
         })
         return this;
+    },
+    toArray:function(){
+        var arr = []
+        for(var index in this){
+            if(/[0-9]+/.test(index) && this.hasOwnProperty(index) ){
+                arr.push(this[index]);
+            }
+        }
+        return arr;
     },
     $:function(selector) {
         var _this = this[0] || this;
@@ -68,15 +77,17 @@ var props = {
         var index = 0;
         this.each(function(){
             var tmpList = this.querySelectorAll(selector);
-            yiui.arrayFrom(tmpList).forEach(function(item){
-                list[index] = yiui(item);
+            $$(tmpList).each(function(item){
+                list[index] = item;
                 index++;
             })
         })
-        list.length = yiui.arrayFrom(list).length;
+        
         setProto(list,props);
+        list.length = list.toArray().length;
         return list;
     },
+    //children:function(selector){} // 这个方法可以不用，直接用 $(selector).$$(':scope>*.selector')
     test:function(){
         console.log('YIUI JS!');
         return this;
@@ -700,7 +711,6 @@ var props = {
         return this;
     },
     destroyDrag: function() {
-        // console.log(yiui.arrayFrom(this))
         this._destroyDrag ? this._destroyDrag() : this.each(function (item) {
             item._destroyDrag();
             // console.log(_this._destroyDrag)
@@ -943,7 +953,7 @@ function yiuiAll(selector){
     
 
     if(els.length){
-        yiui.arrayFrom(els).forEach(function(item){
+        els.toArray().forEach(function(item){
             if(item.nodeName){
                 setProto(item,props);
             }
@@ -957,6 +967,11 @@ function yiuiAll(selector){
 
 
 function yiui(selector){
+    //$(true) 强制执行DOMContentLoaded
+    if(typeof selector == 'boolean'){
+        $(document).trigger('DOMContentLoaded');
+        return;
+    }
     var els = yiuiAll(selector);
     if(!els) {return;}
     var el = els[0] || els;
@@ -967,16 +982,6 @@ function yiui(selector){
 
 setProto(yiui,{
     version:'2.0.0',
-    // 对象强制转数组
-    arrayFrom:function(obj){
-        var arr = []
-        for(var index in obj){
-            if(/[0-9]+/.test(index) && obj.hasOwnProperty(index) ){
-                arr.push(obj[index]);
-            }
-        }
-        return arr;
-    },
     /*
     $.get(url,function(){}}) 
     或
@@ -1193,23 +1198,47 @@ setProto(yiui,{
             } : args[0];
             var scriptsList = window.loadedScripts;
 
-            if (typeof(scriptsList) == 'object' && scriptsList.indexOf(opts.src) > -1) {
-                return;
-            }
+            
 
-            var script = document.createElement('script');
-            script.type = opts.type || 'text/javascript';
-            script.src = opts.src;
-            document.querySelector('head').appendChild(script);
-            scriptsList = typeof(scriptsList) == 'object' ? scriptsList : [];
-            scriptsList.push(opts.src);
-            window.loadedScripts = scriptsList;
+            var srcList = typeof opts.src == 'string' ? [opts.src] : opts.src;
 
-            if (opts.loaded) {
-                yiui(script).on('load', function () {
-                    opts.loaded.call(script);
-                });
-            }
+            if(typeof srcList != 'object'){return;}
+
+            var length = srcList.length;
+            var loadedCount = 0;
+            var scirpts = [];
+
+            srcList.forEach(function(scriptSrc){
+                if (typeof(scriptsList) == 'object' && scriptsList.indexOf(scriptSrc) > -1) {
+                    return;
+                }
+                var script = document.createElement('script');
+                script.type = opts.type || 'text/javascript';
+                script.src = scriptSrc;
+                document.querySelector('head').appendChild(script);
+                scriptsList = typeof(scriptsList) == 'object' ? scriptsList : [];
+                scriptsList.push(scriptSrc);
+                window.loadedScripts = scriptsList;
+                scirpts.push(script);
+
+                var loadedFn = function(){
+                    loadedCount++
+                    if(typeof opts.loaded == 'function' && loadedCount == length){
+                        opts.loaded.call(scirpts,length);
+                    }
+                    yiui(script).un('load');
+                }
+
+                yiui(script).on('load',loadedFn);
+                yiui(script).on('error',function(){
+                    loadedCount++;
+                    yiui(script).un('load error')
+                })
+
+            })
+
+            
+
         }
 
         if (typeof(arguments[0]) == 'object') {
@@ -1237,5 +1266,3 @@ yiui(function(){
 })
 
 // console.dir(yiui.version)
-
-

@@ -45,6 +45,7 @@ function arrToUrlParam(param, idx, key, encode) {
     return paramStr;
 }
 
+
 var props = {
     each:function(fn){
         if(this.nodeType || this.location){
@@ -66,17 +67,50 @@ var props = {
         }
         return arr;
     },
+    find:function(selector){
+        if(typeof selector != 'string'){
+            throw "selector类型应为string";
+        }
+        
+        if(typeof document.querySelector('*').matches != 'function'){
+            var isRoot = typeof this.setAttribute != 'function';
+            var selectorID = isRoot ? 'body' : 'scope-'+yiui.unique();
+            selector = selector.replace(':scope','[query-scope="'+selectorID+'"]');
+            isRoot || this.setAttribute('query-scope',selectorID); 
+            var list = document.querySelector(selector);
+            isRoot || this.removeAttribute('query-scope');
+            return list;
+        }else{
+            return this.querySelector(selector)
+        }
+    },
+    findAll:function(selector){
+        if(typeof selector != 'string'){
+            throw "selector类型应为string";
+        }
+        if(typeof document.querySelector('*').matches != 'function'){
+            var isRoot = typeof this.setAttribute != 'function';
+            var selectorID = isRoot ? 'body' : 'scope-'+yiui.unique();
+            selector = selector.replace(':scope','[query-scope="'+selectorID+'"]');
+            isRoot || this.setAttribute('query-scope',selectorID); 
+            var list = document.querySelectorAll(selector);
+            isRoot || this.removeAttribute('query-scope');
+            return list;
+        }else{
+            return this.querySelectorAll(selector)
+        }
+    },
     $:function(selector) {
         var _this = this[0] || this;
         if (_this.querySelector) {
-            return yiui(_this.querySelector(selector));
+            return yiui(_this.find(selector));
         }
     },
     $$:function(selector) {
         var list = {};
         var index = 0;
         this.each(function(){
-            var tmpList = this.querySelectorAll(selector);
+            var tmpList = this.findAll(selector);
             $$(tmpList).each(function(item){
                 list[index] = item;
                 index++;
@@ -919,7 +953,7 @@ function yiuiAll(selector){
             if(/<.+?>/.test(selector)){
                 els = toEle(selector);
             }else{
-                els = document.querySelectorAll(selector);
+                els = yiui(document).findAll(selector);
             }
             
         }
@@ -935,8 +969,6 @@ function yiuiAll(selector){
 
     var els = compile();
     if(!els){return;}
-
-    
 
     if(selector.console){
         setProto(els,{
@@ -982,6 +1014,10 @@ function yiui(selector){
 
 setProto(yiui,{
     version:'2.0.0',
+    //随机字符串
+    unique:function(){
+        return Number(Math.random().toString().substr(3,4) + Date.now()).toString(36)
+    },
     /*
     $.get(url,function(){}}) 
     或
@@ -1266,3 +1302,5 @@ yiui(function(){
 })
 
 // console.dir(yiui.version)
+
+

@@ -383,6 +383,11 @@ table {
   background-repeat: no-repeat;
 }
 
+.bg-blur {
+  -webkit-backdrop-filter: saturate(100%) blur(10px);
+          backdrop-filter: saturate(100%) blur(10px);
+}
+
 .bg-size-cover {
   background-size: cover;
 }
@@ -1102,6 +1107,11 @@ h5 {
 
 h6 {
   font-size: 1rem;
+}
+
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
 }
 
 .absolute {
@@ -7433,6 +7443,10 @@ h6 {
 }
 
 @media (max-width: 1024px) {
+  .f-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+  }
   .f-absolute {
     position: absolute;
   }
@@ -11902,6 +11916,10 @@ h6 {
 }
 
 @media (max-width: 880px) {
+  .m-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+  }
   .m-absolute {
     position: absolute;
   }
@@ -16371,6 +16389,10 @@ h6 {
 }
 
 @media (max-width: 600px) {
+  .s-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+  }
   .s-absolute {
     position: absolute;
   }

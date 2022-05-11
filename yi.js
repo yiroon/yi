@@ -999,6 +999,9 @@ function yiuiAll(selector){
 
 
 function yiui(selector){
+    if(selector.on){
+        return selector;
+    }
     //$(true) 强制执行DOMContentLoaded
     if(typeof selector == 'boolean'){
         $(document).trigger('DOMContentLoaded');
